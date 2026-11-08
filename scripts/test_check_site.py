@@ -28,6 +28,16 @@ def sub(rel: str, pattern: str, repl: str, count: int = 1):
     return apply
 
 
+def sub_js_ga():
+    def apply(root: Path):
+        f = next((root / "js").glob("ga-init.min.*.js"))
+        s = f.read_text(encoding="utf-8")
+        new = re.sub(r"allow_google_signals:(!1|false)", "allow_google_signals:!0", s)
+        assert new != s, "test setup: signals flag not found"
+        f.write_text(new, encoding="utf-8")
+    return apply
+
+
 def write(rel: str, data: str):
     def apply(root: Path):
         f = root / rel
@@ -50,6 +60,7 @@ CASES = {
     "dotfile": write(".htaccess", "x"),
     "extra javascript file": write("js/evil.js", "alert(1)"),
     "weakened CSP": sub("profile/index.html", r"script-src 'self' https://www.googletagmanager.com", "script-src *"),
+    "GA init with Google Signals turned back on": sub_js_ga(),
     "third-party script other than GA": sub("profile/index.html", r"</head>", "<script async src=https://evil.example/x.js></script></head>"),
     "GA loader with another measurement ID": sub("profile/index.html", r"gtag/js\?id=G-8CG3Q89VLG", "gtag/js?id=G-EVIL00000"),
     "legacy redirect on a non-home page": sub("profile/index.html", r"</head>", "<script src=/js/legacy-redirect.min." + "0" * 96 + ".js integrity=sha384-x></script></head>"),

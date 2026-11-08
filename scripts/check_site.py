@@ -31,7 +31,7 @@ SITE = "okiyamasho.com"
 # the ones Google documents for GA4 under a CSP; nothing else third-party is allowed.
 CSP_EXPECTED = ("default-src 'none'; script-src 'self' https://www.googletagmanager.com; style-src 'self'; "
                 "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com; "
-                "connect-src https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; "
+                "connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com; "
                 "base-uri 'none'; form-action 'none'; object-src 'none'")
 GA_ID = "G-8CG3Q89VLG"
 GA_LOADER = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID
@@ -293,8 +293,12 @@ def check_js(root: Path, path: Path):
         err(path, "unexpected JavaScript file")
         return
     src = path.read_text(encoding="utf-8")
-    if GA_INIT_JS.match(rel) and f'gtag("config","{GA_ID}")' not in src.replace(" ", ""):
-        err(path, "GA init script does not configure the expected measurement ID")
+    if GA_INIT_JS.match(rel):
+        flat = src.replace(" ", "")
+        if f'gtag("config","{GA_ID}",' not in flat:
+            err(path, "GA init script does not configure the expected measurement ID")
+        if "allow_google_signals:!1" not in flat and "allow_google_signals:false" not in flat:
+            err(path, "GA init script must keep Google Signals off (the CSP does not allow ad endpoints)")
     # These strings are what we search FOR (the redirect script must not contain them).
     for bad in ("eval(", "Function(", "innerHTML", "outerHTML", "document.write", "insertAdjacentHTML",
                 "fetch(", "XMLHttpRequest", "import(", "localStorage", "cookie"):

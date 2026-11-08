@@ -17,6 +17,8 @@ enableRobotsTXT = false
   # Header image (kept at its WordPress path so old links keep working).
   headerImage = "/wp-content/uploads/2017/06/toppage_02.jpg"
   favicon = "/wp-content/uploads/2017/06/cropped-favicon0004.png"
+  # Google Analytics 4 (same property the old WordPress site sent data to). Production builds only.
+  ga4 = "G-8CG3Q89VLG"
 
 [permalinks.page]
   posts = "/posts/:slug/"

@@ -1,4 +1,7 @@
 <footer class="site-footer">
   <p>&copy; 2017–{{ now.Year }} {{ site.Params.author }}</p>
   <p><a href="{{ "/profile/" | relURL }}">プロフィール</a> ・ <a href="{{ "/archives/" | relURL }}">記事一覧</a> ・ <a href="{{ "/index.xml" | relURL }}">RSS</a></p>
+  {{- if hugo.IsProduction }}{{ with site.Params.ga4 }}
+  <p class="site-footer__note">このサイトはアクセス解析に Google アナリティクス（Cookie を使用）を利用しています。<a href="https://policies.google.com/technologies/partner-sites?hl=ja" rel="noopener noreferrer">Google によるデータの使用</a></p>
+  {{- end }}{{ end }}
 </footer>

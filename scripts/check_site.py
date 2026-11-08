@@ -27,7 +27,14 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 SITE = "okiyamasho.com"
-CSP_COMMON = "default-src 'none'; script-src {s}; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+# Production policy (Google Analytics 4 enabled, owner's decision 2026-11-08). The GA hosts are exactly
+# the ones Google documents for GA4 under a CSP; nothing else third-party is allowed.
+CSP_EXPECTED = ("default-src 'none'; script-src 'self' https://www.googletagmanager.com; style-src 'self'; "
+                "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com; "
+                "connect-src https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; "
+                "base-uri 'none'; form-action 'none'; object-src 'none'")
+GA_ID = "G-8CG3Q89VLG"
+GA_LOADER = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID
 ALLOWED_EXT = {".html", ".xml", ".css", ".js", ".png", ".jpg", ".jpeg", ".pdf", ".txt"}
 FORBIDDEN_TAGS = {"iframe", "frame", "frameset", "object", "embed", "applet", "form", "input", "button",
                   "textarea", "select", "base", "style", "svg", "template", "portal", "video",
@@ -44,6 +51,7 @@ MATHML_ATTRS = {"xmlns", "display", "encoding", "fence", "lspace", "rspace", "ma
 URL_ATTRS = {"href", "src", "action", "formaction", "poster", "srcset", "data", "cite", "background", "xlink:href"}
 BAD_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
 REDIRECT_JS = re.compile(r"^/js/legacy-redirect\.min\.[0-9a-f]{96}\.js$")
+GA_INIT_JS = re.compile(r"^/js/ga-init\.min\.[0-9a-f]{96}\.js$")
 # Minified Hugo output: <!doctype html><html lang=ja><head><meta charset=utf-8><meta http-equiv=Content-Security-Policy content="...">
 PREFIX = re.compile(
     r"""\A<!doctype html><html lang=["']?ja["']?><head><meta charset=["']?utf-8["']?>"""
@@ -132,12 +140,21 @@ class PageChecker(HTMLParser):
             self.scripts.append(a)
             self.in_script = True
             src = a.get("src", "")
-            if not self.is_home:
-                err(self.path, "script on a non-home page")
-            if not REDIRECT_JS.match(src):
+            if src == GA_LOADER:
+                # Google's loader cannot carry SRI (it changes); it must be async and is the only
+                # third-party script. Allowed by the CSP host list above.
+                if "async" not in a:
+                    err(self.path, "GA loader must be async")
+            elif REDIRECT_JS.match(src):
+                if not self.is_home:
+                    err(self.path, "legacy redirect script on a non-home page")
+                if not a.get("integrity", "").startswith("sha384-"):
+                    err(self.path, "script without SRI integrity")
+            elif GA_INIT_JS.match(src):
+                if not a.get("integrity", "").startswith("sha384-"):
+                    err(self.path, "script without SRI integrity")
+            else:
                 err(self.path, f"unexpected script src {src!r}")
-            if not a.get("integrity", "").startswith("sha384-"):
-                err(self.path, "script without SRI integrity")
         # Sub-resources must be same-origin, root-relative.
         sub = None
         if tag in ("img", "script"):
@@ -148,7 +165,7 @@ class PageChecker(HTMLParser):
                 err(self.path, "srcset not expected")
         if tag == "link" and a.get("rel", "").lower() in ("stylesheet", "icon", "apple-touch-icon", "preload", "modulepreload", "prefetch", "manifest"):
             sub = a.get("href")
-        if sub is not None:
+        if sub is not None and not (tag == "script" and sub == GA_LOADER):
             if not sub.startswith("/") or sub.startswith("//"):
                 err(self.path, f"sub-resource not same-origin root-relative: <{tag}> {sub!r}")
             else:
@@ -204,7 +221,7 @@ def check_html(root: Path, path: Path):
     # The document must literally start with doctype, <html>, <head>, <meta charset>, CSP meta.
     # Only then is the CSP guaranteed (per the HTML parsing rules) to sit in the real <head>
     # before any other element. Exactly one <head> and one CSP meta are allowed.
-    expected = CSP_COMMON.format(s="'self'" if is_home else "'none'")
+    expected = CSP_EXPECTED
     m = PREFIX.match(text)
     if not m:
         err(path, "page does not start with doctype/html/head/meta charset/CSP meta")
@@ -215,8 +232,14 @@ def check_html(root: Path, path: Path):
     if c.csp_count != 1:
         err(path, f"expected exactly one CSP meta, found {c.csp_count}")
     heads = c.head_elems
-    if is_home and len(c.scripts) != 1:
-        err(path, f"home page must have exactly 1 script, found {len(c.scripts)}")
+    srcs = [sc.get("src", "") for sc in c.scripts]
+    n_ga_loader = sum(1 for x in srcs if x == GA_LOADER)
+    n_ga_init = sum(1 for x in srcs if GA_INIT_JS.match(x))
+    n_redirect = sum(1 for x in srcs if REDIRECT_JS.match(x))
+    if n_ga_loader != 1 or n_ga_init != 1:
+        err(path, f"expected exactly one GA loader and one GA init script, found {n_ga_loader}/{n_ga_init}")
+    if n_redirect != (1 if is_home else 0) or len(srcs) != 2 + (1 if is_home else 0):
+        err(path, f"unexpected set of scripts: {srcs}")
     if not any(t == "meta" and a.get("name") == "referrer" for t, a in heads):
         err(path, "referrer meta missing")
     for link in c.internal_links:
@@ -266,15 +289,17 @@ def check_xml(root: Path, path: Path):
 
 def check_js(root: Path, path: Path):
     rel = "/" + path.relative_to(root).as_posix()
-    if not REDIRECT_JS.match(rel):
+    if not (REDIRECT_JS.match(rel) or GA_INIT_JS.match(rel)):
         err(path, "unexpected JavaScript file")
         return
     src = path.read_text(encoding="utf-8")
+    if GA_INIT_JS.match(rel) and f'gtag("config","{GA_ID}")' not in src.replace(" ", ""):
+        err(path, "GA init script does not configure the expected measurement ID")
     # These strings are what we search FOR (the redirect script must not contain them).
     for bad in ("eval(", "Function(", "innerHTML", "outerHTML", "document.write", "insertAdjacentHTML",
                 "fetch(", "XMLHttpRequest", "import(", "localStorage", "cookie"):
         if bad in src:
-            err(path, f"forbidden API in redirect script: {bad}")
+            err(path, f"forbidden API in our script: {bad}")
 
 
 def main():

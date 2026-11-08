@@ -2,14 +2,25 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-{{- /* CSP first, so it governs everything below. Only the home page runs a (same-origin) script. */}}
+{{- /* CSP first, so it governs everything below. Scripts: our own (SRI) + Google Analytics' loader only.
+       The GA hosts are the ones Google documents for GA4 under a CSP. */}}
+{{- $ga := and hugo.IsProduction (findRE `^G-[A-Z0-9]{6,12}$` site.Params.ga4) }}
+{{- if $ga }}
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.googletagmanager.com; style-src 'self'; img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com; connect-src https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+{{- else }}
 {{- $scriptSrc := cond .IsHome "'self'" "'none'" }}
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src {{ $scriptSrc }}; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+{{- end }}
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {{- if .IsHome }}
 {{- $js := resources.Get "js/legacy-redirect.js" | minify | fingerprint "sha384" }}
 <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}"></script>
+{{- end }}
+{{- if $ga }}
+{{- $gajs := resources.Get "js/ga-init.js" | resources.ExecuteAsTemplate "js/ga-init.js" (dict "id" site.Params.ga4) | minify | fingerprint "sha384" }}
+<script src="{{ $gajs.RelPermalink }}" integrity="{{ $gajs.Data.Integrity }}"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.Params.ga4 }}"></script>
 {{- end }}
 <title>{{ if .IsHome }}{{ site.Title }} | {{ site.Params.description }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
 {{- $desc := site.Params.description }}

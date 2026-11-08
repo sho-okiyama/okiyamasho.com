@@ -58,6 +58,8 @@ CASES = {
     "XHTML with script in an extra .xml": write("evil.xml", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><script>alert(1)</script></html>"),
     "markup in RSS text": sub("index.xml", r"<title>", "<title>&lt;script&gt;"),
     "foreign URL in RSS": sub("index.xml", r"<link>https://okiyamasho\.com/", "<link>https://evil.example/"),
+    "xml-stylesheet PI in RSS": sub("index.xml", r"<rss ", "<?xml-stylesheet type=\"text/css\" href=\"https://evil.example/t.css\"?><rss "),
+    "xml-stylesheet PI in sitemap": sub("sitemap.xml", r"<urlset ", "<?xml-stylesheet type=\"text/xsl\" href=\"https://evil.example/t.xsl\"?><urlset "),
     "href inside MathML": sub(MATH_POST, r"<mi>", "<mi href=\"https://evil.example\">"),
     "img inside MathML": sub(MATH_POST, r"<mrow>", "<mrow><img src=/x.png>"),
     "unrendered TeX marker": sub("profile/index.html", r"<p>", "<p><span class=\"tex-inline\">x</span>"),

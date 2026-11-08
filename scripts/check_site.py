@@ -236,6 +236,11 @@ def check_xml(root: Path, path: Path):
     if "<!DOCTYPE" in raw.upper() or "<!ENTITY" in raw.upper():
         err(path, "DOCTYPE/ENTITY in XML")
         return
+    # ElementTree drops processing instructions, so check the raw text: the only one allowed is
+    # the XML declaration at the very start (e.g. no <?xml-stylesheet href="https://..."?>).
+    body = re.sub(r"\A<\?xml [^?]*\?>", "", raw, count=1)
+    if "<?" in body:
+        err(path, "processing instruction in XML (only the leading XML declaration is allowed)")
     try:
         tree = ET.parse(path)
     except ET.ParseError as e:

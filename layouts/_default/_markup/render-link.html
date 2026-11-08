@@ -1,0 +1,9 @@
+{{- /*
+  Markdown links. External http(s) links get rel="noopener noreferrer" (required by
+  scripts/check_site.py). The destination is deliberately NOT passed through safeURL, so Go's
+  template escaping still neutralises javascript:/data: URLs.
+*/ -}}
+{{- $u := urls.Parse .Destination -}}
+{{- $external := and (in (slice "http" "https") $u.Scheme) (not (in (slice "okiyamasho.com" "www.okiyamasho.com") $u.Host)) -}}
+<a href="{{ .Destination }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $external }} rel="noopener noreferrer"{{ end }}>{{ .Text }}</a>
+{{- /* chomp trailing newline */ -}}

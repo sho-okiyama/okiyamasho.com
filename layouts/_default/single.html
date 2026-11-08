@@ -1,0 +1,17 @@
+{{ define "main" }}
+<article class="entry">
+  <header class="entry-header">
+    <h1 class="entry-title">{{ .Title }}</h1>
+    {{- if eq .Section "posts" }}{{ partial "post-meta.html" . }}{{ end }}
+  </header>
+  <div class="entry-content">
+    {{ partial "render-math.html" .Content }}
+  </div>
+</article>
+{{- if eq .Section "posts" }}
+<nav class="post-nav" aria-label="前後の記事">
+  {{- with .PrevInSection }}<a class="post-nav__prev" href="{{ .RelPermalink }}">← {{ .Title }}</a>{{ end }}
+  {{- with .NextInSection }}<a class="post-nav__next" href="{{ .RelPermalink }}">{{ .Title }} →</a>{{ end }}
+</nav>
+{{- end }}
+{{ end }}

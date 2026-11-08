@@ -1,0 +1,18 @@
+{{ define "main" }}
+{{- range (where site.RegularPages "Section" "posts").ByDate.Reverse }}
+<article class="entry">
+  <header class="entry-header">
+    <h2 class="entry-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+    {{ partial "post-meta.html" . }}
+  </header>
+  {{- /* Like WordPress: show the text before <!--more--> with a "continue" link, otherwise the whole post. */}}
+  {{- $manual := strings.Contains .RawContent "<!--more-->" }}
+  <div class="entry-content">
+    {{ if $manual }}{{ partial "render-math.html" .Summary }}{{ else }}{{ partial "render-math.html" .Content }}{{ end }}
+  </div>
+  {{- if $manual }}
+  <p class="more-link"><a href="{{ .RelPermalink }}">“{{ .Title }}” の続きを読む →</a></p>
+  {{- end }}
+</article>
+{{- end }}
+{{ end }}

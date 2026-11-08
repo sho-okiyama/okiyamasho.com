@@ -1,0 +1,16 @@
+# Build output and caches
+/public/
+/resources/
+.hugo_build.lock
+
+# Never commit these (backups, exports, credentials)
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+*.zip
+*.pem
+*.key
+.env
+.env.*
+.DS_Store

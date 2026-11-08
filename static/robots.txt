@@ -1,0 +1,11 @@
+# Kept from the previous site (set by the hosting provider in Dec 2025 because of crawler load).
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: meta-webindexer
+Disallow: /
+
+User-agent: *
+Allow: /
+
+Sitemap: https://okiyamasho.com/sitemap.xml

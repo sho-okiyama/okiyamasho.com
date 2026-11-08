@@ -1,0 +1,208 @@
+/* okiyamasho.com - minimal theme that keeps the look of the 2017 WordPress site (philips_ok). */
+:root {
+  --bg: #fafafa;
+  --text: #222;
+  --muted: #787878;
+  --navy: #00005a;
+  --accent: #355892;
+  --accent-soft: #dbe4f2;
+  --link: #2a6496;
+  --rule: #e5e5e5;
+  --font: "游ゴシック体", YuGothic, "游ゴシック", "Yu Gothic", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", Meiryo, メイリオ, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 2;
+  font-weight: 500;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover, a:focus { text-decoration: underline; }
+
+.skip-link {
+  position: absolute; left: -9999px; top: 0;
+  background: #fff; padding: 8px 12px; z-index: 10;
+}
+.skip-link:focus { left: 8px; top: 8px; }
+
+/* ---------- header ---------- */
+.site-header {
+  background: #c9d3ec url("/wp-content/uploads/2017/06/toppage_02.jpg") center / cover no-repeat;
+  padding: 56px 16px;
+  text-align: center;
+}
+.site-title {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.site-title a { color: var(--navy); }
+.site-title a:hover { text-decoration: none; }
+.site-description {
+  margin: 12px 0 0;
+  font-size: 18px;
+  color: var(--navy);
+  line-height: 1.4;
+}
+
+.site-nav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+.site-nav ul {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 16px;
+  list-style: none;
+  display: flex;
+  justify-content: flex-end;
+}
+.site-nav a {
+  display: block;
+  padding: 14px 0 14px 24px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+/* ---------- layout ---------- */
+.layout {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 48px 16px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 64px;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 32px; }
+  .site-title { font-size: 28px; }
+  .site-description { font-size: 15px; }
+  .site-header { padding: 40px 16px; }
+}
+
+/* ---------- entries ---------- */
+.entry { margin-bottom: 72px; }
+.entry-title {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--navy);
+}
+.entry-title a { color: var(--navy); }
+.entry-meta { margin: 6px 0 24px; font-size: 13px; color: var(--navy); line-height: 1.6; }
+.entry-meta time { color: var(--muted); }
+.entry-meta .updated-on { margin-left: 1em; }
+.more-link { margin-top: 8px; }
+
+.page-header .page-title {
+  margin: 0 0 24px;
+  padding: 10px 14px;
+  border-left: 8px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* ---------- body text (rules from the old child theme) ---------- */
+.entry-content p { margin: .7em 0 1em; }
+.entry-content ul, .entry-content ol { margin: 1em 0; padding-left: 1.6em; }
+.entry-content h3 {
+  margin: 60px 0 20px;
+  padding: .5em 0;
+  border-top: solid 3px var(--accent);
+  border-bottom: solid 3px var(--accent);
+  font-size: 150%;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--accent);
+}
+.entry-content h4 {
+  margin: 45px 0 20px;
+  padding: 10px 14px;
+  border-left: 5px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 130%;
+  line-height: 1.3;
+  color: #000;
+}
+.entry-content img { max-width: 100%; height: auto; }
+.entry-content .has-text-align-center { text-align: center; }
+.entry-content .aligncenter { display: block; margin-left: auto; margin-right: auto; }
+
+.box01 {
+  position: relative;
+  margin: 2em 0;
+  padding: .8em 1em .5em;
+  border: solid 3px var(--accent);
+  border-radius: 8px;
+  line-height: 2;
+}
+.box01 .box-title {
+  position: absolute;
+  top: -13px;
+  left: 10px;
+  padding: 0 9px;
+  line-height: 1;
+  font-size: 19px;
+  background: var(--bg);
+  color: var(--accent);
+  font-weight: 700;
+}
+.box01 p { margin: 0; }
+.box01 ul { margin: 5px 0 0 20px; padding: 1px; }
+
+.entry-content table.type01 {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  text-align: left;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+table.type01 thead th { padding: 10px; font-weight: 700; vertical-align: top; color: var(--accent); border-bottom: 3px solid var(--accent); }
+table.type01 tbody th { padding: 10px; font-weight: 700; vertical-align: top; border-bottom: 1px solid #ccc; background: #f3f6f7; }
+table.type01 td { padding: 10px; vertical-align: top; border-bottom: 1px solid #ccc; }
+
+.slide-preview { margin: 1.5em 0; max-width: 640px; }
+.slide-preview img { display: block; width: 100%; height: auto; border: 1px solid #ddd; box-shadow: 0 4px 16px rgba(0, 0, 0, .12); }
+.slide-preview figcaption { margin-top: 8px; font-size: 14px; }
+
+/* ---------- lists / nav ---------- */
+.post-list { list-style: none; padding: 0; margin: 0 0 32px; }
+.post-list li { padding: 8px 0; border-bottom: 1px solid var(--rule); line-height: 1.6; }
+.post-list__date { color: var(--muted); font-size: 13px; margin-left: .5em; white-space: nowrap; }
+.archive-month h2 { font-size: 18px; margin: 32px 0 8px; color: var(--accent); }
+
+.post-nav { display: flex; justify-content: space-between; gap: 24px; font-size: 14px; line-height: 1.6; border-top: 1px solid var(--rule); padding-top: 16px; }
+.post-nav__next { margin-left: auto; text-align: right; }
+
+/* ---------- sidebar / footer ---------- */
+.widget-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; color: #333; }
+.widget ul { list-style: none; padding: 0; margin: 0; }
+.widget li { font-size: 14px; line-height: 1.85; }
+.widget a { color: #666; }
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding: 24px 16px 40px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.site-footer p { margin: 0; }

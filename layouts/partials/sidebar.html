@@ -1,0 +1,11 @@
+<aside class="sidebar" aria-label="サイドバー">
+  <section class="widget">
+    <h2 class="widget-title">アーカイブ</h2>
+    <ul>
+      {{- range (where site.RegularPages "Section" "posts").GroupByDate "2006-01" }}
+      {{- $t := time.AsTime (printf "%s-01" .Key) }}
+      <li><a href="{{ "/archives/" | relURL }}#m{{ $t.Format "200601" }}">{{ $t.Format "2006年1月" }}</a></li>
+      {{- end }}
+    </ul>
+  </section>
+</aside>

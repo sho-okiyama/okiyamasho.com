@@ -1,0 +1,14 @@
+{{ define "main" }}
+<header class="page-header"><h1 class="page-title">{{ .Title }}</h1></header>
+{{- range (where site.RegularPages "Section" "posts").GroupByDate "2006-01" }}
+{{- $t := time.AsTime (printf "%s-01" .Key) }}
+<section class="archive-month" id="m{{ $t.Format "200601" }}">
+  <h2>{{ $t.Format "2006年1月" }}</h2>
+  <ul class="post-list">
+    {{- range .Pages }}
+    <li><a href="{{ .RelPermalink }}">{{ .Title }}</a> <span class="post-list__date">{{ .Date.Format "1月2日" }}</span></li>
+    {{- end }}
+  </ul>
+</section>
+{{- end }}
+{{ end }}

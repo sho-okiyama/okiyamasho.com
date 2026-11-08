@@ -1,0 +1,22 @@
+{{- /*
+  Renders TeX written in the old posts ($$...$$ for display math, \( ... \) for inline math) to
+  MathML at BUILD time with Hugo's built-in KaTeX (transform.ToMath). The old site loaded MathJax
+  from a CDN in the browser; this keeps the formulas without any client-side JavaScript.
+  Input: an HTML string (.Content or .Summary). Output: HTML.
+  WordPress "smart quotes" turned f' into f’ and ... into … inside the formulas; undo that first.
+*/ -}}
+{{- $fix := dict "’" "'" "…" `\ldots ` -}}
+{{- $c := string . -}}
+{{- range findRESubmatch `(?s)\$\$(.+?)\$\$` $c -}}
+  {{- $tex := index . 1 | htmlUnescape -}}
+  {{- range $k, $v := $fix }}{{ $tex = replace $tex $k $v }}{{ end -}}
+  {{- $m := transform.ToMath $tex (dict "displayMode" true "output" "mathml" "throwOnError" true) -}}
+  {{- $c = replace $c (index . 0) (string $m) -}}
+{{- end -}}
+{{- range findRESubmatch `(?s)\\\((.+?)\\\)` $c -}}
+  {{- $tex := index . 1 | htmlUnescape -}}
+  {{- range $k, $v := $fix }}{{ $tex = replace $tex $k $v }}{{ end -}}
+  {{- $m := transform.ToMath $tex (dict "displayMode" false "output" "mathml" "throwOnError" true) -}}
+  {{- $c = replace $c (index . 0) (string $m) -}}
+{{- end -}}
+{{- $c | safeHTML -}}

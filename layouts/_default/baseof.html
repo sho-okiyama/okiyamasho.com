@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+{{- /* CSP first, so it governs everything below. Only the home page runs a (same-origin) script. */}}
+{{- $scriptSrc := cond .IsHome "'self'" "'none'" }}
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src {{ $scriptSrc }}; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{- if .IsHome }}
+{{- $js := resources.Get "js/legacy-redirect.js" | minify | fingerprint "sha384" }}
+<script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}"></script>
+{{- end }}
+<title>{{ if .IsHome }}{{ site.Title }} | {{ site.Params.description }}{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
+{{- $desc := site.Params.description }}
+{{- if and .IsPage (ne .Summary "") }}{{ $desc = .Summary | plainify | htmlUnescape | strings.TrimSpace | truncate 110 }}{{ end }}
+<meta name="description" content="{{ $desc }}">
+<link rel="canonical" href="{{ .Permalink }}">
+{{- $css := resources.Get "css/site.css" | minify | fingerprint "sha384" }}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+<link rel="icon" href="{{ site.Params.favicon }}" type="image/png">
+<link rel="apple-touch-icon" href="{{ site.Params.favicon }}">
+{{- with site.Home.OutputFormats.Get "rss" }}
+<link rel="alternate" type="application/rss+xml" href="{{ .Permalink }}" title="{{ site.Title }}">
+{{- end }}
+{{- partial "ogp.html" . }}
+</head>
+<body>
+<a class="skip-link" href="#main">本文へ移動</a>
+{{ partial "header.html" . }}
+<div class="layout">
+  <main id="main" class="content">
+    {{ block "main" . }}{{ end }}
+  </main>
+  {{ partial "sidebar.html" . }}
+</div>
+{{ partial "footer.html" . }}
+</body>
+</html>

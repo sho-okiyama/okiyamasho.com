@@ -1,0 +1,68 @@
+baseURL = "https://okiyamasho.com/"
+locale = "ja-JP"
+defaultContentLanguage = "ja"
+title = "ブログ 沖山翔"
+timeZone = "Asia/Tokyo"
+# No tag/category pages: the old site only had "未分類" and "お知らせ".
+disableKinds = ["taxonomy", "term"]
+# robots.txt is a static file (static/robots.txt).
+enableRobotsTXT = false
+
+[module.hugoVersion]
+  min = "0.168.0"
+
+[params]
+  description = "未来はどちらを向いているか"
+  author = "沖山翔"
+  # Header image (kept at its WordPress path so old links keep working).
+  headerImage = "/wp-content/uploads/2017/06/toppage_02.jpg"
+  favicon = "/wp-content/uploads/2017/06/cropped-favicon0004.png"
+
+[permalinks.page]
+  posts = "/posts/:slug/"
+
+[outputs]
+  home = ["html", "rss"]
+  section = ["html"]
+  page = ["html"]
+
+[services.rss]
+  limit = 50
+
+# Markdown: never pass raw HTML through (future posts are written in Markdown).
+[markup.goldmark.renderer]
+  unsafe = false
+# Keep $$...$$ and \( ... \) untouched in Markdown so layouts/partials/render-math.html can turn
+# them into MathML at build time (same as the imported posts).
+[markup.goldmark.extensions.passthrough]
+  enable = true
+  [markup.goldmark.extensions.passthrough.delimiters]
+    block = [["$$", "$$"]]
+    inline = [["\\(", "\\)"]]
+
+# Built-in third-party embeds are not used; make sure none of them can phone home.
+[privacy.disqus]
+  disable = true
+[privacy.googleAnalytics]
+  disable = true
+[privacy.instagram]
+  disable = true
+[privacy.vimeo]
+  disable = true
+[privacy.x]
+  disable = true
+[privacy.youtube]
+  disable = true
+
+[security]
+  enableInlineShortcodes = false
+  # The 13 imported WordPress posts/pages are HTML content files. They were sanitized with an
+  # allowlist at import time (tools/import_wp.py) and the generated site is re-checked by
+  # scripts/check_site.py in CI, so text/html content is allowed. New posts should be Markdown.
+  allowContent = ["! ^text/org$"]
+  [security.exec]
+    # No external programs are needed to build this site.
+    allow = ["^$"]
+  [security.http]
+    # No remote resources are fetched at build time.
+    urls = ["^$"]

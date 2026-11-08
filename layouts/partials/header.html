@@ -1,0 +1,15 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    {{- if .IsHome }}
+    <h1 class="site-title"><a href="{{ "/" | relURL }}">{{ site.Title }}</a></h1>
+    {{- else }}
+    <p class="site-title"><a href="{{ "/" | relURL }}">{{ site.Title }}</a></p>
+    {{- end }}
+    <p class="site-description">{{ site.Params.description }}</p>
+  </div>
+</header>
+<nav class="site-nav" aria-label="メインメニュー">
+  <ul>
+    <li><a href="{{ "/profile/" | relURL }}">PROFILE</a></li>
+  </ul>
+</nav>

@@ -49,6 +49,7 @@ PREFIX = re.compile(
     r"""\A<!doctype html><html lang=["']?ja["']?><head><meta charset=["']?utf-8["']?>"""
     r"""<meta http-equiv=["']?Content-Security-Policy["']? content="(?P<csp>[^"<>]*)">""",
     re.IGNORECASE)
+TAG_LIKE = re.compile(r"<\s*[/!?]?\s*[A-Za-z]")
 # XML: only these files, elements and attributes.
 XML_RULES = {
     "/index.xml": {
@@ -249,7 +250,9 @@ def check_xml(root: Path, path: Path):
             if (el.tag, k) not in rules["attrs"]:
                 err(path, f"unexpected XML attribute {k} on {el.tag}")
         text = (el.text or "") + (el.tail or "")
-        if "<" in text or ">" in text:
+        # Plain comparisons such as "1 < 2" are fine; anything that looks like a tag, comment,
+        # CDATA or processing instruction is not (feed readers may render descriptions as HTML).
+        if TAG_LIKE.search(text):
             err(path, f"markup inside XML text of {el.tag} (feeds/sitemap must be plain text)")
         if el.tag in ("link", "guid", "{http://www.sitemaps.org/schemas/sitemap/0.9}loc") and el.text:
             if not el.text.startswith(f"https://{SITE}/"):

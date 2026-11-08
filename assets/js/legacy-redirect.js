@@ -4,18 +4,18 @@
 (function () {
   "use strict";
   var POSTS = {
-  "46": "/posts/introduction/",
-  "122": "/posts/learn-from-the-present/",
-  "230": "/posts/technology-grows-by-itself/",
-  "264": "/posts/medicine-ai-quantum-blockchain/",
-  "277": "/posts/visualizing-4d/",
-  "302": "/posts/era-of-analog-computers/",
-  "330": "/posts/is-math-useful-in-society/",
-  "359": "/posts/lifespan-grows-every-year/",
-  "397": "/posts/understanding-ai-from-scratch/",
-  "404": "/posts/how-ai-plays-go/",
-  "435": "/posts/nationality-as-a-parameter/",
-  "473": "/posts/exponential-technologies-and-the-future/"
+  "46": "/posts/20170610/",
+  "122": "/posts/20170613/",
+  "230": "/posts/20170621/",
+  "264": "/posts/20170619/",
+  "277": "/posts/20170626/",
+  "302": "/posts/20170717/",
+  "330": "/posts/20170728/",
+  "359": "/posts/20170808/",
+  "397": "/posts/20170819/",
+  "404": "/posts/20170830/",
+  "435": "/posts/20170929/",
+  "473": "/posts/20171012/"
 };
   var search = window.location.search;
   if (!search || window.location.pathname !== "/") { return; }

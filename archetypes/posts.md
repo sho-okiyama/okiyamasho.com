@@ -1,7 +1,7 @@
 +++
 title = ""
 date = {{ .Date }}
-slug = "{{ .File.ContentBaseName }}"
+slug = "{{ .Date | time.Format "20060102" }}"  # URL = /posts/<初回投稿日>/。同じ日の 2 本目は "yyyymmdd-2"
 draft = true
 +++
 

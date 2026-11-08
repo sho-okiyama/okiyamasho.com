@@ -36,8 +36,8 @@ def write(rel: str, data: str):
     return apply
 
 
-POST = "posts/visualizing-4d/index.html"
-MATH_POST = "posts/how-ai-plays-go/index.html"
+POST = "posts/20170626/index.html"
+MATH_POST = "posts/20170830/index.html"
 CASES = {
     "event handler attribute": sub(POST, r"<p>", "<p onclick=alert(1)>"),
     "inline script on a non-home page": sub("profile/index.html", r"</body>", "<script>alert(1)</script></body>"),

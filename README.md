@@ -10,7 +10,7 @@
 
 Claude に「この内容で記事を追加して公開して」と頼めば、以下を代行する。
 
-1. `content/posts/<英字スラッグ>.md` を作る（ひな形: `archetypes/posts.md`）
+1. `content/posts/<yyyymmdd>.md`（初回投稿日）を作る（ひな形: `archetypes/posts.md`）。同じ日に 2 本目を書くときは `<yyyymmdd>-2`
    - 本文は Markdown。生の HTML は書いても表示されない（安全のため無効化している）
    - `<!--more-->` の行より前がトップページに表示される
    - 数式は `$$ ... $$`（別行）、`\( ... \)`（文中）。ビルド時に MathML へ変換される
@@ -18,7 +18,7 @@ Claude に「この内容で記事を追加して公開して」と頼めば、�
 2. `draft = true` を消して commit → `main` に push
 3. 1〜2 分で公開。GitHub の Actions タブで結果を確認できる
 
-URL は `/posts/<スラッグ>/`。一度公開したスラッグは変えない（リンク切れになる）。
+URL は `/posts/<yyyymmdd>/`（初回投稿日。2026-11-08 に本人が決定）。一度公開した URL は変えない（リンク切れになる）。
 
 ## 手元で確認する
 

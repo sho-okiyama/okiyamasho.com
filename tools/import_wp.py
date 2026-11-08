@@ -26,20 +26,21 @@ from pathlib import Path
 SITE_HOSTS = {"okiyamasho.com", "www.okiyamasho.com"}
 JETPACK_CDN = re.compile(r"^i[0-3]\.wp\.com$")
 
-# WordPress post id -> new slug (URL: /posts/<slug>/). Fixed on purpose: these are permanent URLs.
+# WordPress post id -> new slug = first publication date (URL: /posts/<yyyymmdd>/, owner's choice
+# 2026-11-08). Fixed on purpose: these are permanent URLs.
 SLUGS = {
-    473: "exponential-technologies-and-the-future",
-    435: "nationality-as-a-parameter",
-    404: "how-ai-plays-go",
-    397: "understanding-ai-from-scratch",
-    359: "lifespan-grows-every-year",
-    330: "is-math-useful-in-society",
-    302: "era-of-analog-computers",
-    277: "visualizing-4d",
-    230: "technology-grows-by-itself",
-    264: "medicine-ai-quantum-blockchain",
-    122: "learn-from-the-present",
-    46: "introduction",
+    473: "20171012",
+    435: "20170929",
+    404: "20170830",
+    397: "20170819",
+    359: "20170808",
+    330: "20170728",
+    302: "20170717",
+    277: "20170626",
+    264: "20170619",
+    230: "20170621",
+    122: "20170613",
+    46: "20170610",
 }
 PAGE_SLUGS = {11: "profile"}
 

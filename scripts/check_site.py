@@ -8,7 +8,11 @@ Fails (exit 1) if the output contains anything this static site should never con
   - event-handler attributes, inline styles, <style>, iframes/objects/forms/base, etc.
   - javascript:/data:/vbscript: URLs
   - sub-resources (img/script/stylesheet/icon) loaded from another origin
-  - pages without the expected Content-Security-Policy as the first thing in <head>
+  - pages that do not START with <!doctype html><html><head><meta charset><meta CSP> (so the CSP
+    is guaranteed to be inside the real <head> and to precede everything else), or that carry a
+    second CSP / <head>
+  - duplicate attributes (browsers use the first, a dict-based checker would see the last)
+  - XML other than the RSS feed and sitemap, or with unexpected elements/attributes/markup
   - internal links that do not resolve to a generated file
   - file types that are not plain static content (e.g. .php, .htaccess, .svg, extra .js)
 Standard library only.
@@ -40,6 +44,26 @@ MATHML_ATTRS = {"xmlns", "display", "encoding", "fence", "lspace", "rspace", "ma
 URL_ATTRS = {"href", "src", "action", "formaction", "poster", "srcset", "data", "cite", "background", "xlink:href"}
 BAD_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
 REDIRECT_JS = re.compile(r"^/js/legacy-redirect\.min\.[0-9a-f]{96}\.js$")
+# Minified Hugo output: <!doctype html><html lang=ja><head><meta charset=utf-8><meta http-equiv=Content-Security-Policy content="...">
+PREFIX = re.compile(
+    r"""\A<!doctype html><html lang=["']?ja["']?><head><meta charset=["']?utf-8["']?>"""
+    r"""<meta http-equiv=["']?Content-Security-Policy["']? content="(?P<csp>[^"<>]*)">""",
+    re.IGNORECASE)
+# XML: only these files, elements and attributes.
+XML_RULES = {
+    "/index.xml": {
+        "elements": {"rss", "channel", "title", "link", "description", "language", "lastBuildDate",
+                     "{http://www.w3.org/2005/Atom}link", "item", "pubDate", "guid"},
+        "attrs": {("rss", "version"), ("{http://www.w3.org/2005/Atom}link", "href"),
+                  ("{http://www.w3.org/2005/Atom}link", "rel"), ("{http://www.w3.org/2005/Atom}link", "type")},
+        "root": "rss",
+    },
+    "/sitemap.xml": {
+        "elements": {"{http://www.sitemaps.org/schemas/sitemap/0.9}" + t for t in ("urlset", "url", "loc", "lastmod")},
+        "attrs": set(),
+        "root": "{http://www.sitemaps.org/schemas/sitemap/0.9}urlset",
+    },
+}
 
 errors: list[str] = []
 
@@ -58,9 +82,20 @@ class PageChecker(HTMLParser):
         self.in_script = False
         self.internal_links: set[str] = set()
         self.math_depth = 0
+        self.head_count = 0
+        self.csp_count = 0
 
     def handle_starttag(self, tag, attrs):
+        names = [k.lower() for k, _ in attrs]
+        if len(names) != len(set(names)):
+            err(self.path, f"duplicate attribute on <{tag}>: {sorted(n for n in set(names) if names.count(n) > 1)}")
         a = {k.lower(): (v or "") for k, v in attrs}
+        if tag == "head":
+            self.head_count += 1
+        if tag == "meta" and a.get("http-equiv", "").lower() == "content-security-policy":
+            self.csp_count += 1
+        if tag == "span" and a.get("class", "").startswith("tex-"):
+            err(self.path, "unrendered TeX marker (render-math partial not applied)")
         if tag == "head":
             self.in_head = True
         if self.in_head and tag != "head":
@@ -165,14 +200,20 @@ def check_html(root: Path, path: Path):
     c = PageChecker(root, path, is_home)
     c.feed(text)
     c.close()
-    # CSP must be the first element after <meta charset>.
+    # The document must literally start with doctype, <html>, <head>, <meta charset>, CSP meta.
+    # Only then is the CSP guaranteed (per the HTML parsing rules) to sit in the real <head>
+    # before any other element. Exactly one <head> and one CSP meta are allowed.
     expected = CSP_COMMON.format(s="'self'" if is_home else "'none'")
+    m = PREFIX.match(text)
+    if not m:
+        err(path, "page does not start with doctype/html/head/meta charset/CSP meta")
+    elif m.group("csp") != expected:
+        err(path, f"CSP differs from the expected policy: {m.group('csp')!r}")
+    if c.head_count != 1:
+        err(path, f"expected exactly one <head>, found {c.head_count}")
+    if c.csp_count != 1:
+        err(path, f"expected exactly one CSP meta, found {c.csp_count}")
     heads = c.head_elems
-    if len(heads) < 2 or heads[0][0] != "meta" or "charset" not in heads[0][1]:
-        err(path, "<meta charset> is not the first element in <head>")
-    elif not (heads[1][0] == "meta" and heads[1][1].get("http-equiv", "").lower() == "content-security-policy"
-              and heads[1][1].get("content") == expected):
-        err(path, "CSP meta missing, not second in <head>, or different from the expected policy")
     if is_home and len(c.scripts) != 1:
         err(path, f"home page must have exactly 1 script, found {len(c.scripts)}")
     if not any(t == "meta" and a.get("name") == "referrer" for t, a in heads):
@@ -185,16 +226,34 @@ def check_html(root: Path, path: Path):
 def check_xml(root: Path, path: Path):
     # Input is our own Hugo output (RSS/sitemap), not third-party XML; expat in current Python
     # does not fetch external entities and limits entity expansion, so stdlib ElementTree is fine here.
+    rel = "/" + path.relative_to(root).as_posix()
+    rules = XML_RULES.get(rel)
+    if rules is None:
+        err(path, "unexpected XML file (only /index.xml and /sitemap.xml are published)")
+        return
+    raw = path.read_text(encoding="utf-8")
+    if "<!DOCTYPE" in raw.upper() or "<!ENTITY" in raw.upper():
+        err(path, "DOCTYPE/ENTITY in XML")
+        return
     try:
         tree = ET.parse(path)
     except ET.ParseError as e:
         err(path, f"XML parse error: {e}")
         return
+    if tree.getroot().tag != rules["root"]:
+        err(path, f"unexpected XML root {tree.getroot().tag}")
     for el in tree.iter():
-        text = (el.text or "")
-        low = text.lower()
-        if "<script" in low or "javascript:" in low or re.search(r"\son[a-z]+\s*=", low) or "<iframe" in low:
-            err(path, f"suspicious markup inside <{el.tag}>")
+        if el.tag not in rules["elements"]:
+            err(path, f"unexpected XML element {el.tag}")
+        for k in el.attrib:
+            if (el.tag, k) not in rules["attrs"]:
+                err(path, f"unexpected XML attribute {k} on {el.tag}")
+        text = (el.text or "") + (el.tail or "")
+        if "<" in text or ">" in text:
+            err(path, f"markup inside XML text of {el.tag} (feeds/sitemap must be plain text)")
+        if el.tag in ("link", "guid", "{http://www.sitemaps.org/schemas/sitemap/0.9}loc") and el.text:
+            if not el.text.startswith(f"https://{SITE}/"):
+                err(path, f"URL outside the site in {el.tag}: {el.text[:60]}")
 
 
 def check_js(root: Path, path: Path):

@@ -85,6 +85,41 @@ class ImportError_(Exception):
     pass
 
 
+def inside(base: Path, rel: str) -> Path:
+    """Join a URL path under base and refuse anything that escapes it ('..', symlinks)."""
+    if any(seg in ("..", ".") for seg in rel.split("/")) or "\\" in rel or "\x00" in rel:
+        raise ImportError_(f"suspicious path segment: {rel!r}")
+    target = (base / rel.lstrip("/")).resolve()
+    if not target.is_relative_to(base.resolve()):
+        raise ImportError_(f"path escapes {base}: {rel!r}")
+    return target
+
+
+# TeX in text nodes -> marker spans that layouts/partials/render-math.html turns into MathML.
+# Marker classes are NOT in ALLOWED_CLASSES, so original content can never forge them.
+TEX_DISPLAY = re.compile(r"\$\$(.+?)\$\$", re.S)
+TEX_INLINE = re.compile(r"\\\((.+?)\\\)", re.S)
+TEX_FIX = {"\u2019": "'", "\u2026": "\\ldots "}  # WordPress smart quotes inside formulas
+
+
+def tex_markup(text: str) -> str:
+    def esc(tex: str) -> str:
+        for k, v in TEX_FIX.items():
+            tex = tex.replace(k, v)
+        return html.escape(tex, quote=True)
+    out, pos = [], 0
+    pattern = re.compile(TEX_DISPLAY.pattern + "|" + TEX_INLINE.pattern, re.S)
+    for m in pattern.finditer(text):
+        out.append(html.escape(text[pos:m.start()], quote=False))
+        if m.group(1) is not None:
+            out.append(f'<span class="tex-display">{esc(m.group(1))}</span>')
+        else:
+            out.append(f'<span class="tex-inline">{esc(m.group(2))}</span>')
+        pos = m.end()
+    out.append(html.escape(text[pos:], quote=False))
+    return "".join(out)
+
+
 def norm_site_path(url: str) -> str | None:
     """Return a root-relative path if url points to the old site (directly or via Jetpack CDN)."""
     parts = urllib.parse.urlsplit(url)
@@ -111,6 +146,12 @@ class Sanitizer(HTMLParser):
         self.used = used_files
         self.mirror = mirror
         self.skip_depth = 0  # inside <script> that we replaced
+        self.text_buf: list[str] = []
+
+    def flush_text(self):
+        if self.text_buf:
+            self.out.append(tex_markup("".join(self.text_buf)))
+            self.text_buf = []
 
     def fail(self, msg: str):
         raise ImportError_(f"post {self.post_id}: {msg}")
@@ -140,12 +181,13 @@ class Sanitizer(HTMLParser):
         if path is None or not path.startswith("/wp-content/uploads/"):
             self.fail(f"image not from the old site's uploads: {src!r}")
         real = urllib.parse.unquote(path)
-        if not (self.mirror / real.lstrip("/")).is_file():
+        if not inside(self.mirror, real).is_file():
             self.fail(f"image missing in mirror: {real}")
         self.used.add(real)
         return path
 
     def handle_starttag(self, tag, attrs):
+        self.flush_text()
         if self.skip_depth:
             self.fail("nested tag inside replaced script")
         if tag == "script":
@@ -213,6 +255,7 @@ class Sanitizer(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag):
+        self.flush_text()
         if self.skip_depth:
             if tag != "script":
                 self.fail("unexpected end tag inside script")
@@ -240,9 +283,10 @@ class Sanitizer(HTMLParser):
             if data.strip():
                 self.fail("inline script body")
             return
-        self.out.append(html.escape(data, quote=False))
+        self.text_buf.append(data)
 
     def handle_comment(self, data):
+        self.flush_text()
         if data.strip() == "more":
             self.out.append("<!--more-->")
         # all other comments are dropped
@@ -257,6 +301,7 @@ class Sanitizer(HTMLParser):
         self.fail("CDATA/unknown declaration in content")
 
     def result(self) -> str:
+        self.flush_text()
         if self.stack:
             self.fail(f"unclosed tags: {self.stack}")
         return "".join(self.out)
@@ -348,13 +393,13 @@ def main():
             to_copy.add(originals[path])
     copied = []
     for path in sorted(to_copy):
-        src = mirror / path.lstrip("/")
+        src = inside(mirror, path)
         if path.startswith("/uploads/"):  # old /uploads/ alias of /wp-content/uploads/
-            src = mirror / "wp-content" / path.lstrip("/")
+            src = inside(mirror, "/wp-content" + path)
         data = src.read_bytes()
         if not (data.startswith(b"\x89PNG\r\n\x1a\n") or data.startswith(b"\xff\xd8\xff")):
             raise ImportError_(f"not a PNG/JPEG: {path}")
-        dst = static / path.lstrip("/")
+        dst = inside(static, path)
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
         copied.append(dst)
@@ -364,7 +409,7 @@ def main():
     for url_path, local in pdf_map.items():
         if url_path not in used:
             raise ImportError_(f"PDF not referenced by content: {url_path}")
-        dst = static / url_path.lstrip("/")
+        dst = inside(static, url_path)
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(local, dst)
     missing_pdfs = {u for u in used if u.startswith("/uploads/") and u.endswith(".pdf")} - set(pdf_map)

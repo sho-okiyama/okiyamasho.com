@@ -1,0 +1,2 @@
+{{- /* Markdown math ($$…$$ block, \( … \) inline) -> MathML at build time (Hugo's KaTeX). */ -}}
+{{- transform.ToMath .Inner (dict "displayMode" (eq .Type "block") "output" "mathml" "throwOnError" true) -}}

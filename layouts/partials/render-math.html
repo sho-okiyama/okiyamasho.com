@@ -1,22 +1,17 @@
 {{- /*
-  Renders TeX written in the old posts ($$...$$ for display math, \( ... \) for inline math) to
-  MathML at BUILD time with Hugo's built-in KaTeX (transform.ToMath). The old site loaded MathJax
-  from a CDN in the browser; this keeps the formulas without any client-side JavaScript.
+  Imported (HTML) posts: tools/import_wp.py turned the TeX of the old posts into marker elements
+  <span class="tex-display">…</span> / <span class="tex-inline">…</span> (text only, escaped).
+  Here they become MathML at BUILD time with Hugo's built-in KaTeX - no client-side JavaScript
+  (the old site loaded MathJax from a CDN). Only these exact markers are touched; the marker
+  classes cannot come from the original posts (they are not in the importer's allowlist) and
+  raw HTML is disabled in Markdown, so nothing else in the page is rewritten.
+  Markdown posts use layouts/_default/_markup/render-passthrough.html instead.
   Input: an HTML string (.Content or .Summary). Output: HTML.
-  WordPress "smart quotes" turned f' into f’ and ... into … inside the formulas; undo that first.
 */ -}}
-{{- $fix := dict "’" "'" "…" `\ldots ` -}}
 {{- $c := string . -}}
-{{- range findRESubmatch `(?s)\$\$(.+?)\$\$` $c -}}
-  {{- $tex := index . 1 | htmlUnescape -}}
-  {{- range $k, $v := $fix }}{{ $tex = replace $tex $k $v }}{{ end -}}
-  {{- $m := transform.ToMath $tex (dict "displayMode" true "output" "mathml" "throwOnError" true) -}}
-  {{- $c = replace $c (index . 0) (string $m) -}}
-{{- end -}}
-{{- range findRESubmatch `(?s)\\\((.+?)\\\)` $c -}}
-  {{- $tex := index . 1 | htmlUnescape -}}
-  {{- range $k, $v := $fix }}{{ $tex = replace $tex $k $v }}{{ end -}}
-  {{- $m := transform.ToMath $tex (dict "displayMode" false "output" "mathml" "throwOnError" true) -}}
+{{- range findRESubmatch `<span class="tex-(display|inline)">([^<]*)</span>` $c -}}
+  {{- $tex := index . 2 | htmlUnescape -}}
+  {{- $m := transform.ToMath $tex (dict "displayMode" (eq (index . 1) "display") "output" "mathml" "throwOnError" true) -}}
   {{- $c = replace $c (index . 0) (string $m) -}}
 {{- end -}}
 {{- $c | safeHTML -}}

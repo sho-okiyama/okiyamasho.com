@@ -23,7 +23,7 @@ URL は `/posts/<スラッグ>/`。一度公開したスラッグは変えない
 ## 手元で確認する
 
 ```bash
-cd ~/ClaudeCode/02_projects/89_okiyamasho-website && ~/ClaudeCode/tools/hugo/0.168.0/hugo --gc --minify --cleanDestinationDir --environment production && python3 -I scripts/check_site.py public
+cd ~/ClaudeCode/02_projects/89_okiyamasho-website && ~/ClaudeCode/tools/hugo/0.168.0/hugo --gc --minify --cleanDestinationDir --environment production && python3 -I scripts/check_site.py public && python3 -I scripts/test_check_site.py public
 ```
 
 `~/ClaudeCode/tools/hugo/0.168.0/hugo` は公式配布の macOS 用 pkg から取り出した同じ版（署名・SHA256 確認済み）。
@@ -40,6 +40,7 @@ cd ~/ClaudeCode/02_projects/89_okiyamasho-website && ~/ClaudeCode/tools/hugo/0.1
 | `assets/js/legacy-redirect.js` | 旧 URL（`/?p=473` など）→ 新 URL の転送。サイト唯一の JavaScript |
 | `static/wp-content/uploads/` `static/uploads/` | 旧サイトと同じパスに置いた画像・PDF（外部からのリンクを切らさないため） |
 | `scripts/check_site.py` | ビルド後の安全検査（CI で配備前に必ず実行） |
+| `scripts/test_check_site.py` | 安全検査そのものの回帰テスト（危険な変更 25 種を注入し、すべて検出されることを確認） |
 | `tools/import_wp.py` | 移行時に 1 回だけ使った変換スクリプト（記録として保存） |
 | `.github/workflows/deploy.yml` | ビルド・検査・配備 |
 
@@ -52,7 +53,7 @@ cd ~/ClaudeCode/02_projects/89_okiyamasho-website && ~/ClaudeCode/tools/hugo/0.1
 
 ## 定期作業
 
-- Dependabot が月 1 回、Actions の更新 PR を出す → 内容を確認してマージ
+- Dependabot が月 1 回、Actions の更新 PR を出す → PR 上で `check.yml` がビルドと検査を自動実行するので、緑なら内容を確認してマージ
 - Hugo の版上げ（年数回・任意）: `deploy.yml` の `HUGO_VERSION` と `HUGO_SHA256`（公式 `hugo_<版>_checksums.txt` の `linux-amd64.tar.gz` 行）を更新。公開から 2 週間以上経った版を使う。手元用バイナリも同じ版に揃える
 
 ## 緊急時
